@@ -555,41 +555,38 @@ end
     end
 
     r = norm(dr)
-    r6 = r^6
-    pα_6 = sc.p * sc.α / 6
+    r2 = r^2
 
-    term_state_a, term_state_b = zero_energy, zero_energy
+    σ2 = inter.σ_mixing(atom_i, atom_j)^2
+    σ6 = σ2^3
+    ϵ = inter.ϵ_mixing(atom_i, atom_j)
+    c6 = 4 * ϵ * σ6
+    c12 = c6 * σ6
 
-    # ∂V/∂λ for system in state A
-    if !isnothing(sc.inter_state_a)
-        σ_a = sc.inter_state_a.σ_mixing(atom_i, atom_j)
-        ϵ_a = sc.inter_state_a.ϵ_mixing(atom_i, atom_j)
+    r_sc = α * sqrt(cbrt((26 * (c12 / c6) * (1 - inter.λ) / 7)))
+    r_sc2 = r_sc^2
+    r_sc6 = r_sc2^3
+    r_sc8 = r_sc^4
 
-        σ_a2 = σ_a^2
-        r_a = get_ra(r6, σ_a2, α, λ, p)
-
-        term_state_a = pairwise_pe(lennard_jones, r_a, (σ_a2, ϵ_a)) +
-                       (1 - sc.λ) * pairwise_force(lennard_jones, r_a, (σ_a2, ϵ_a)) /
-                       r_a^5 * σ_a2^3 * sc.λ^(p - 1)
-    end
-
-    # ∂V/∂λ for system in state B
-    if !isnothing(sc.inter_state_b)
-        σ_b = sc.inter_state_b.σ_mixing(atom_i, atom_j)
-        ϵ_b = sc.inter_state_b.ϵ_mixing(atom_i, atom_j)
-
-        σ_b2 = σ_b^2
-        r_b = get_rb(r6, σ_b2, α, λ, p)
-
-        term_state_b = pairwise_pe(lennard_jones, r_b, (σ_b2, ϵ_b)) +
-                       pα_6 * sc.λ * pairwise_force(lennard_jones, r_b, (σ_b2, ϵ_b)) /
-                       r_b^5 * σ_b2^3 * (1 - sc.λ)^(sc.p - 1)
-    end
-
-    if special
-        return (term_state_b - term_state_a) * sc.weight_special
+    if r > r_cutoff
+        dh_dl =  pairwise_pe(lennard_jones, r, (σ2, ϵ))
     else
-        return term_state_b - term_state_a
+        dh_dl = (
+            (78 * c12 / (r_sc8*r_sc6) - (21 * c6) / r_sc8) * r2
+            - (168 * c12 / (r_sc6^2 * r_sc) - 48 * c6 / (r_sc6 * r_sc)) * r
+            + (91 * c12 / r_sc6^2 - 28 * c6 / r_sc6)
+            + 14 * inter.λ / (1 - inter.λ) * (
+                (13 * c12 / (r_sc8 * r_sc6) - 2 * c6 / r_sc8) * r2
+                - (26 * c12 / (r_sc6^2 * r_sc) - 4 * c6 / (r_sc6 * r_sc)) * r
+                + (13 * c12 / r_sc6^2 - 2 * c6 / r_sc6)
+            )
+        )
+    end
+   
+    if special
+        return dh_dl * sc.weight_special
+    else
+        return dh_dl
     end
 
 end
