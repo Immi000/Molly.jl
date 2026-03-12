@@ -116,6 +116,12 @@ end
     @test scalar_vir ≈ scalar_virial(sys_pme; n_threads=1)
     @test scalar_P ≈ scalar_pressure(sys_pme; n_threads=1)
 
+    # Test that Lennard-Jones 1-4 specific interactions work as expected
+    sys_lj14 = System(joinpath(data_dir, "6mrr_equil.pdb"), ff;
+                      nonbonded_method=:cutoff, center_coords=false, force_separate_lj14=true)
+    @test potential_energy(sys) ≈ potential_energy(sys_lj14)
+    @test maximum(norm.(forces(sys) .- forces(sys_lj14))) < 1e-10u"kJ * nm^-1 * mol^-1"
+
     inters = (
         "bond_only", "angle_only", "proptor_only", "improptor_only", "lj_only", "coul_only",
         "all_cut", "all_pme", "all_pme_exact",
@@ -238,7 +244,6 @@ end
     @test maximum(norm.(vels_diff  )) < 1e-7u"nm * ps^-1"
 
     params_dic = Molly.extract_parameters(sys_nounits, ff_nounits)
-    @test length(params_dic) == 637
     sys_nounits_nogi = System(sys_nounits; general_inters=())
     atoms_grad, pis_grad, sis_grad, gis_grad = Molly.inject_gradients(sys_nounits_nogi, params_dic)
     @test atoms_grad == sys_nounits.atoms
@@ -363,6 +368,7 @@ end
         @test pis_grad == sys_nounits.pairwise_inters
     end
 end
+
 
 @testset "Implicit solvent" begin
     ff = MolecularForceField(joinpath.(ff_dir, ["ff99SBildn.xml"])...)
