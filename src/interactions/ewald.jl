@@ -424,13 +424,14 @@ end
 
 function PME(dist_cutoff, atoms, boundary; error_tol=0.0005, order=5,
              ϵr=1.0, fixed_charges=true, eligible=nothing, special=nothing, grad_safe=false,
-             n_threads::Integer=Threads.nthreads())
+             n_threads::Integer=Threads.nthreads(),
+             α=nothing, mesh_dims=nothing)
     T = typeof(ustrip(dist_cutoff))
     AT = array_type(atoms)
     n_atoms = length(atoms)
     error_tol_T = T(error_tol)
-    α = inv(dist_cutoff) * sqrt(-log(2 * error_tol_T))
-    mesh_dims = pme_params.(box_sides(boundary), α, error_tol_T)
+    α = isnothing(α) ? inv(dist_cutoff) * sqrt(-log(2 * error_tol_T)) : T(α)
+    mesh_dims = isnothing(mesh_dims) ? pme_params.(box_sides(boundary), α, error_tol_T) : SVector{3, Int}(mesh_dims)
     grid_indices = to_device(zeros(Int, 3, n_atoms), AT)
     grid_fractions = to_device(zeros(T, 3, n_atoms), AT)
     bsplines_θ = to_device(zeros(T, order * n_atoms, 3), AT)

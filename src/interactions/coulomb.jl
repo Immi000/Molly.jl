@@ -629,8 +629,8 @@ struct CoulombEwald{T, D, W, C, A} <: PairwiseInteraction
 end
 
 function CoulombEwald(; dist_cutoff, error_tol=0.0005, use_neighbors=false,
-                      weight_special=1, coulomb_const=coulomb_const, approximate_erfc=true)
-    α = inv(dist_cutoff) * sqrt(-log(2 * error_tol))
+                      weight_special=1, coulomb_const=coulomb_const, approximate_erfc=true,
+                      α=inv(dist_cutoff) * sqrt(-log(2 * error_tol)))
     return CoulombEwald(dist_cutoff, error_tol, use_neighbors, weight_special, coulomb_const,
                         α, approximate_erfc)
 end
